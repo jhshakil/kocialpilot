@@ -7,25 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, PenTool } from "lucide-react";
-import { TGeneratedContent } from "@/types";
+import { TGeneratedContent, TPost } from "@/types";
 import ImageUploader from "@/components/tools/image-uploader";
 import ScheduleSection from "@/components/tools/schedule-section";
 import AIAssistant from "@/components/tools/ai-assistant";
 
 const POSTS_STORAGE_KEY = "kocialpilot_posts";
 
-type StoredPost = {
-  id: string;
-  content: string;
-  date: string;
-  time: string;
-  platform: string[];
-  status: "scheduled" | "published" | "failed";
-  images: string[];
-  createdAt: string;
-};
-
-const savePostToStorage = (post: StoredPost) => {
+const savePostToStorage = (post: TPost) => {
   const existingPosts = getPostsFromStorage();
   localStorage.setItem(
     POSTS_STORAGE_KEY,
@@ -33,7 +22,7 @@ const savePostToStorage = (post: StoredPost) => {
   );
 };
 
-const getPostsFromStorage = (): StoredPost[] => {
+const getPostsFromStorage = (): TPost[] => {
   if (typeof window === "undefined") return [];
   const stored = localStorage.getItem(POSTS_STORAGE_KEY);
   return stored ? JSON.parse(stored) : [];
@@ -48,6 +37,7 @@ const CreatePostPage = () => {
     uploadedImages: [] as string[],
     scheduleDate: "",
     scheduleTime: "",
+    selectedPlatforms: ["facebook", "instagram"] as string[],
   });
 
   const handleGenerateContent = async () => {
@@ -75,7 +65,6 @@ const CreatePostPage = () => {
       toast.success("Content Generated!", {
         description: "AI has generated your content.",
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error("Error", {
         description: "Failed to generate content.",
@@ -140,7 +129,13 @@ const CreatePostPage = () => {
   };
 
   const handleSchedulePost = () => {
-    const { content, scheduleDate, scheduleTime, uploadedImages } = postState;
+    const {
+      content,
+      scheduleDate,
+      scheduleTime,
+      uploadedImages,
+      selectedPlatforms,
+    } = postState;
 
     if (!content.trim()) {
       toast.error("Please add content.");
@@ -151,12 +146,12 @@ const CreatePostPage = () => {
       return;
     }
 
-    const newPost: StoredPost = {
+    const newPost: TPost = {
       id: Date.now().toString(),
       content,
       date: scheduleDate,
       time: scheduleTime,
-      platform: ["Facebook", "Instagram"],
+      platform: selectedPlatforms,
       status: "scheduled",
       images: uploadedImages,
       createdAt: new Date().toISOString(),
@@ -176,6 +171,7 @@ const CreatePostPage = () => {
       uploadedImages: [],
       scheduleDate: "",
       scheduleTime: "",
+      selectedPlatforms: ["facebook", "instagram"],
     });
   };
 
@@ -234,6 +230,39 @@ const CreatePostPage = () => {
                   }))
                 }
               />
+
+              {/* Platform Selector */}
+              <div>
+                <Label>Select Platforms</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {["facebook", "instagram"].map((platform) => (
+                    <Button
+                      key={platform}
+                      type="button"
+                      variant={
+                        postState.selectedPlatforms.includes(platform)
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        setPostState((prev) => ({
+                          ...prev,
+                          selectedPlatforms: prev.selectedPlatforms.includes(
+                            platform
+                          )
+                            ? prev.selectedPlatforms.filter(
+                                (p) => p !== platform
+                              )
+                            : [...prev.selectedPlatforms, platform],
+                        }))
+                      }
+                    >
+                      {platform}
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
               {/* Schedule */}
               <ScheduleSection

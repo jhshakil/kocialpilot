@@ -11,7 +11,7 @@ import Image from "next/image";
 
 const POSTS_STORAGE_KEY = "kocialpilot_posts";
 
-interface ScheduledPost {
+type ScheduledPost = {
   id: string;
   content: string;
   date: string;
@@ -20,7 +20,7 @@ interface ScheduledPost {
   status: "scheduled" | "published" | "failed";
   images: string[];
   createdAt: string;
-}
+};
 
 const getPostsFromStorage = (): ScheduledPost[] => {
   if (typeof window === "undefined") return [];
