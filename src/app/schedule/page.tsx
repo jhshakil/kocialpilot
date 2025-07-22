@@ -62,7 +62,7 @@ const SchedulePage = () => {
   useEffect(() => {
     const today = new Date();
     const start = new Date(today);
-    start.setDate(today.getDate() - today.getDay() + 6); // Saturday
+    start.setDate(today.getDate() - today.getDay() + 6);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
 
@@ -257,7 +257,7 @@ const SchedulePage = () => {
                             <ImageIcon className="h-3 w-3" />
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="flex flex-wrap gap-1 mt-3">
                           {post.platform.map((platform) => (
                             <Badge
                               key={platform}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,65 +15,43 @@ import {
   Settings,
   Loader2,
   Plus,
+  RefreshCw,
+  ExternalLink,
 } from "lucide-react";
-
-type PlatformField = {
-  key: string;
-  label: string;
-  type: "text" | "password" | "textarea";
-  required: boolean;
-};
-
-type PlatformConfig = {
-  id: string;
-  name: string;
-  description: string;
-  fields: PlatformField[];
-  storageKey: string;
-  apiEndpoint: string;
-  testEndpoint: string;
-};
-
-interface Connection {
-  status: "connected" | "disconnected" | "error";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: Record<string, any>;
-  error?: string;
-  connectedAt?: string;
-}
 
 const PLATFORMS = {
   facebook: {
     id: "facebook",
     name: "Facebook & Instagram",
-    description: "Connect Facebook Page with Instagram Business",
+    description:
+      "Connect Facebook page with Instagram Business account using OAuth",
     fields: [
-      { key: "appId", label: "App ID", type: "text", required: true },
+      {
+        key: "appId",
+        label: "App ID",
+        type: "text",
+        required: true,
+        placeholder: "Your Facebook App ID",
+      },
       {
         key: "appSecret",
         label: "App Secret",
         type: "password",
         required: true,
-      },
-      {
-        key: "accessToken",
-        label: "Access Token",
-        type: "textarea",
-        required: true,
+        placeholder: "Your Facebook App Secret",
       },
     ],
     storageKey: "kocialpilot_fb_ig_connections",
-    apiEndpoint: "/api/facebook/connect",
-    testEndpoint: "/api/facebook/test",
+    useOAuth: true,
   },
-} as const satisfies Record<string, PlatformConfig>;
+} as const;
 
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+type Connection = {
+  status: "connected" | "disconnected" | "error";
+  data?: Record<string, any>;
+  error?: string;
+  connectedAt?: string;
+};
 
 export default function SocialMediaPage() {
   const [connections, setConnections] = useState<Record<string, Connection>>(
@@ -82,72 +61,121 @@ export default function SocialMediaPage() {
     Record<string, Record<string, string>>
   >({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [authCode, setAuthCode] = useState<string>("");
 
   useEffect(() => {
     const loadedConnections: Record<string, Connection> = {};
     const loadedFormData: Record<string, Record<string, string>> = {};
 
     Object.values(PLATFORMS).forEach((platform) => {
-      try {
-        const stored = localStorage.getItem(platform.storageKey);
-        if (stored) {
-          const data = JSON.parse(stored);
-          loadedConnections[platform.id] = {
-            status: data.status || "disconnected",
-            data,
-            connectedAt: data.connectedAt,
-          };
+      const stored = localStorage.getItem(platform.storageKey);
+      if (stored) {
+        const data = JSON.parse(stored);
+        loadedConnections[platform.id] = {
+          status: data.status || "disconnected",
+          data,
+          connectedAt: data.connectedAt,
+        };
+        if (data.status === "connected") {
           loadedFormData[platform.id] = {};
           platform.fields.forEach((field) => {
             loadedFormData[platform.id][field.key] = data[field.key] || "";
           });
-        } else {
-          loadedConnections[platform.id] = { status: "disconnected" };
-          loadedFormData[platform.id] = {};
         }
-      } catch (err) {
-        console.error(`Failed to load ${platform.id} connection:`, err);
+      } else {
+        loadedConnections[platform.id] = { status: "disconnected" };
+        loadedFormData[platform.id] = {};
       }
     });
 
     setConnections(loadedConnections);
     setFormData(loadedFormData);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    const error = urlParams.get("error");
+
+    if (error) {
+      toast.error(`OAuth Error: ${error}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (code) {
+      setAuthCode(code);
+      toast.success("Authorization received. Complete the connection!");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   const handleInputChange = (
     platformId: string,
-    key: string,
+    field: string,
     value: string
   ) => {
     setFormData((prev) => ({
       ...prev,
-      [platformId]: { ...prev[platformId], [key]: value },
+      [platformId]: {
+        ...prev[platformId],
+        [field]: value,
+      },
     }));
   };
 
-  const handleConnect = async (platformId: string) => {
+  const handleStartOAuth = async (platformId: string) => {
     const platform = PLATFORMS[platformId as keyof typeof PLATFORMS];
-    if (!platform) return;
+    if (!platform.useOAuth) return;
 
-    const missing = platform.fields.filter(
-      (f) => f.required && !formData[platformId]?.[f.key]?.trim()
-    );
-
-    if (missing.length) {
-      toast.error(`Missing: ${missing.map((f) => f.label).join(", ")}`);
+    const appId = formData[platformId]?.appId?.trim();
+    if (!appId) {
+      toast.error("Please enter your Facebook App ID first");
       return;
     }
 
     setLoading((prev) => ({ ...prev, [platformId]: true }));
 
     try {
-      const res = await fetch(platform.apiEndpoint, {
+      const response = await fetch(
+        `/api/facebook/oauth?appId=${encodeURIComponent(appId)}`
+      );
+      const result = await response.json();
+
+      if (!response.ok)
+        throw new Error(result.error || "Failed to generate OAuth URL");
+
+      window.open(result.oauthUrl, "_blank", "width=600,height=600");
+      toast.success(
+        "OAuth started. Complete it in the popup, then click 'Complete Connection'"
+      );
+    } catch (err: any) {
+      toast.error(`OAuth Error: ${err.message}`);
+    } finally {
+      setLoading((prev) => ({ ...prev, [platformId]: false }));
+    }
+  };
+
+  const handleCompleteConnection = async (platformId: string) => {
+    const platform = PLATFORMS[platformId as keyof typeof PLATFORMS];
+    const appId = formData[platformId]?.appId?.trim();
+    const appSecret = formData[platformId]?.appSecret?.trim();
+
+    if (!appId || !appSecret) {
+      toast.error("Please enter both App ID and App Secret");
+      return;
+    }
+
+    if (!authCode) {
+      toast.error("No authorization code found. Start OAuth first.");
+      return;
+    }
+
+    setLoading((prev) => ({ ...prev, [platformId]: true }));
+
+    try {
+      const response = await fetch("/api/facebook/oauth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData[platformId]),
+        body: JSON.stringify({ code: authCode, appId, appSecret }),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Connection failed");
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Connection failed");
 
       const connectionData = {
         ...formData[platformId],
@@ -167,8 +195,8 @@ export default function SocialMediaPage() {
         },
       }));
 
+      setAuthCode("");
       toast.success(`Connected to ${platform.name}!`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setConnections((prev) => ({
         ...prev,
@@ -180,24 +208,65 @@ export default function SocialMediaPage() {
     }
   };
 
+  const handleRefreshToken = async (platformId: string) => {
+    const platform = PLATFORMS[platformId as keyof typeof PLATFORMS];
+    const connection = connections[platformId];
+    if (!connection?.data) return;
+
+    setLoading((prev) => ({ ...prev, [`${platformId}_refresh`]: true }));
+
+    try {
+      const response = await fetch("/api/facebook/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appId: connection.data.appId,
+          appSecret: connection.data.appSecret,
+          userAccessToken: connection.data.userAccessToken,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Refresh failed");
+
+      const updatedData = {
+        ...connection.data,
+        ...result,
+        refreshedAt: result.refreshedAt,
+      };
+      localStorage.setItem(platform.storageKey, JSON.stringify(updatedData));
+      setConnections((prev) => ({
+        ...prev,
+        [platformId]: {
+          status: "connected",
+          data: updatedData,
+          connectedAt: connection.connectedAt,
+        },
+      }));
+      toast.success(`Refreshed ${platform.name} token`);
+    } catch (err: any) {
+      toast.error(`Refresh failed: ${err.message}`);
+    } finally {
+      setLoading((prev) => ({ ...prev, [`${platformId}_refresh`]: false }));
+    }
+  };
+
   const handleTest = async (platformId: string) => {
     const platform = PLATFORMS[platformId as keyof typeof PLATFORMS];
     const connection = connections[platformId];
-    if (!platform || !connection.data) return;
+    if (!connection?.data) return;
 
     setLoading((prev) => ({ ...prev, [`${platformId}_test`]: true }));
 
     try {
-      const res = await fetch(platform.testEndpoint, {
+      const response = await fetch("/api/facebook/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(connection.data),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Test failed");
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Test failed");
 
-      toast.success(`${platform.name} connection is working!`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.success(`${platform.name} connection working!`);
     } catch (err: any) {
       toast.error(`Test failed: ${err.message}`);
     } finally {
@@ -207,51 +276,48 @@ export default function SocialMediaPage() {
 
   const handleDisconnect = (platformId: string) => {
     const platform = PLATFORMS[platformId as keyof typeof PLATFORMS];
-    if (!platform) return;
-
     localStorage.removeItem(platform.storageKey);
-
     setConnections((prev) => ({
       ...prev,
       [platformId]: { status: "disconnected" },
     }));
     setFormData((prev) => ({ ...prev, [platformId]: {} }));
-
+    setAuthCode("");
     toast.success(`Disconnected from ${platform.name}`);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "connected":
-        return <CheckCircle className="h-5 w-5 text-green-500" aria-hidden />;
-      case "error":
-        return <AlertCircle className="h-5 w-5 text-red-500" aria-hidden />;
-      default:
-        return <XCircle className="h-5 w-5 text-gray-400" aria-hidden />;
-    }
-  };
+  const getStatusIcon = (status: string) =>
+    status === "connected" ? (
+      <CheckCircle className="h-5 w-5 text-green-500" />
+    ) : status === "error" ? (
+      <AlertCircle className="h-5 w-5 text-red-500" />
+    ) : (
+      <XCircle className="h-5 w-5 text-gray-400" />
+    );
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "connected":
-        return <Badge className="bg-green-100 text-green-800">Connected</Badge>;
-      case "error":
-        return <Badge className="bg-red-100 text-red-800">Error</Badge>;
-      default:
-        return <Badge variant="secondary">Disconnected</Badge>;
-    }
-  };
+  const getStatusBadge = (status: string) =>
+    status === "connected" ? (
+      <Badge className="bg-green-100 text-green-800">Connected</Badge>
+    ) : status === "error" ? (
+      <Badge className="bg-red-100 text-red-800">Error</Badge>
+    ) : (
+      <Badge variant="secondary">Disconnected</Badge>
+    );
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Social Media Integration
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Connect your social media accounts for automated posting.
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold mb-2">Social Media Integration</h1>
+      <p className="text-gray-600 mb-6">
+        Connect your social media accounts securely using OAuth
+      </p>
+
+      {authCode && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-800 font-medium">
+            Authorization received! Complete the connection below.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Object.values(PLATFORMS).map((platform) => {
@@ -261,41 +327,40 @@ export default function SocialMediaPage() {
           const isConnected = connection.status === "connected";
           const isLoading = loading[platform.id];
           const isTestLoading = loading[`${platform.id}_test`];
+          const isRefreshLoading = loading[`${platform.id}_refresh`];
 
           return (
             <Card key={platform.id}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <h3 className="font-semibold">{platform.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {platform.description}
-                      </p>
-                    </div>
+                  <div>
+                    <h3 className="font-semibold">{platform.name}</h3>
+                    <p className="text-sm text-gray-500">
+                      {platform.description}
+                    </p>
                   </div>
                   {getStatusIcon(connection.status)}
                 </CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between items-center">
                   {getStatusBadge(connection.status)}
                   {connection.connectedAt && (
                     <span className="text-xs text-gray-500">
-                      {formatDate(connection.connectedAt)}
+                      {new Date(connection.connectedAt).toLocaleDateString()}
                     </span>
                   )}
                 </div>
 
                 {connection.error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-600">{connection.error}</p>
+                  <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                    {connection.error}
                   </div>
                 )}
 
                 {!isConnected && (
-                  <div className="space-y-3">
+                  <>
                     {platform.fields.map((field) => (
                       <div key={field.key}>
                         <Label htmlFor={`${platform.id}-${field.key}`}>
@@ -304,75 +369,63 @@ export default function SocialMediaPage() {
                             <span className="text-red-500 ml-1">*</span>
                           )}
                         </Label>
-                        {field.type === "textarea" ? (
-                          <textarea
-                            id={`${platform.id}-${field.key}`}
-                            placeholder={`Enter your ${field.label.toLowerCase()}`}
-                            value={formData[platform.id]?.[field.key] || ""}
-                            onChange={(e) =>
-                              handleInputChange(
-                                platform.id,
-                                field.key,
-                                e.target.value
-                              )
-                            }
-                            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none"
-                            rows={3}
-                          />
-                        ) : (
-                          <Input
-                            id={`${platform.id}-${field.key}`}
-                            type={field.type}
-                            placeholder={`Enter your ${field.label.toLowerCase()}`}
-                            value={formData[platform.id]?.[field.key] || ""}
-                            onChange={(e) =>
-                              handleInputChange(
-                                platform.id,
-                                field.key,
-                                e.target.value
-                              )
-                            }
-                            className="mt-1"
-                          />
-                        )}
+                        <Input
+                          id={`${platform.id}-${field.key}`}
+                          type={field.type}
+                          placeholder={field.placeholder}
+                          value={formData[platform.id]?.[field.key] || ""}
+                          onChange={(e) =>
+                            handleInputChange(
+                              platform.id,
+                              field.key,
+                              e.target.value
+                            )
+                          }
+                          className="mt-3"
+                        />
                       </div>
                     ))}
 
                     <Button
-                      onClick={() => handleConnect(platform.id)}
+                      onClick={() => handleStartOAuth(platform.id)}
                       disabled={isLoading}
                       className="w-full"
+                      variant="outline"
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
-                        <Plus className="h-4 w-4 mr-2" />
+                        <ExternalLink className="h-4 w-4 mr-2" />
                       )}
-                      Connect
+                      Start OAuth
                     </Button>
-                  </div>
+
+                    <Button
+                      onClick={() => handleCompleteConnection(platform.id)}
+                      disabled={!authCode}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Complete Connection
+                    </Button>
+                  </>
                 )}
 
                 {isConnected && (
-                  <div className="space-y-3">
+                  <>
                     {connection.data?.userName && (
-                      <div>
-                        <p className="text-sm font-medium">
-                          Connected as: {connection.data.userName}
-                        </p>
+                      <div className="text-sm">
+                        Connected as:{" "}
+                        <strong>{connection.data.userName}</strong>
                         {connection.data?.pageName && (
-                          <p className="text-xs text-gray-500">
-                            Page: {connection.data.pageName}
-                          </p>
+                          <div>Page: {connection.data.pageName}</div>
                         )}
                         {connection.data?.instagramUsername && (
-                          <p className="text-xs text-gray-500">
+                          <div>
                             Instagram: @{connection.data.instagramUsername}
-                          </p>
+                          </div>
                         )}
                       </div>
                     )}
-
                     <div className="flex gap-2">
                       <Button
                         onClick={() => handleTest(platform.id)}
@@ -388,6 +441,19 @@ export default function SocialMediaPage() {
                         Test
                       </Button>
                       <Button
+                        onClick={() => handleRefreshToken(platform.id)}
+                        disabled={isRefreshLoading}
+                        size="sm"
+                        variant="outline"
+                      >
+                        {isRefreshLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                        )}
+                        Refresh
+                      </Button>
+                      <Button
                         onClick={() => handleDisconnect(platform.id)}
                         size="sm"
                         variant="destructive"
@@ -395,23 +461,13 @@ export default function SocialMediaPage() {
                         Disconnect
                       </Button>
                     </div>
-                  </div>
+                  </>
                 )}
               </CardContent>
             </Card>
           );
         })}
       </div>
-
-      <Card className="mt-6 border-dashed">
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-center text-gray-500">
-            <Plus className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">More platforms coming soon...</p>
-            <p className="text-xs">Twitter, LinkedIn, TikTok, and more</p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

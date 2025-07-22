@@ -3,12 +3,12 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { accessToken, pageAccessToken, pageId, instagramAccountId } =
+    const { userAccessToken, pageAccessToken, pageId, instagramAccountId } =
       await request.json();
 
     // Test Facebook user access
     const userResponse = await fetch(
-      `https://graph.facebook.com/v18.0/me?access_token=${accessToken}`
+      `https://graph.facebook.com/v18.0/me?access_token=${userAccessToken}`
     );
     if (!userResponse.ok) {
       throw new Error("Facebook user access failed");
