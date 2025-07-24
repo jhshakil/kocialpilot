@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the access token by getting user info
     const userResponse = await fetch(
       `https://graph.facebook.com/v18.0/me?access_token=${accessToken}`
     );
@@ -24,7 +23,6 @@ export async function POST(request: NextRequest) {
 
     const userData = await userResponse.json();
 
-    // Get user's Facebook pages
     const pagesResponse = await fetch(
       `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,category,tasks&access_token=${accessToken}`
     );
@@ -40,10 +38,8 @@ export async function POST(request: NextRequest) {
         ) || [];
 
       if (validPages.length > 0) {
-        // Use the first valid page
         pageData = validPages[0];
 
-        // Try to get Instagram account for this page
         try {
           const instagramResponse = await fetch(
             `https://graph.facebook.com/v18.0/${pageData.id}?fields=instagram_business_account{id,username}&access_token=${pageData.access_token}`
@@ -56,7 +52,6 @@ export async function POST(request: NextRequest) {
             }
           }
         } catch (error) {
-          // Instagram connection is optional
           console.log("Instagram not connected:", error);
         }
       }

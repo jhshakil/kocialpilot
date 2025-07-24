@@ -32,7 +32,7 @@ const AIAssistant = ({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bot className="h-5 w-5" /> AI Assistant
+          <Bot className="h-4 w-4 md:h-5 md:w-5" /> AI Assistant
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -64,12 +64,18 @@ const AIAssistant = ({
         {generatedContent && (
           <div className="space-y-4">
             <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium mb-2">Caption:</h4>
-              <p className="text-sm mb-2">{generatedContent.caption}</p>
+              <h4 className="font-medium mb-2 text-sm md:text-base">
+                Caption:
+              </h4>
+              <p className="text-xs md:text-sm text-gray-700 mb-3">
+                {generatedContent.caption}
+              </p>
 
               {generatedContent.hashtags.length > 0 && (
                 <div>
-                  <h4 className="font-medium mb-2">Hashtags:</h4>
+                  <h4 className="font-medium mb-2 text-sm md:text-base">
+                    Hashtags:
+                  </h4>
                   <div className="flex flex-wrap gap-1">
                     {generatedContent.hashtags.map((tag, i) => (
                       <Badge key={i} variant="secondary" className="text-xs">
@@ -101,12 +107,13 @@ const AIAssistant = ({
                 height={96}
                 src={generatedContent.imageUrl}
                 alt="Generated"
-                className="w-full h-32 object-cover rounded-lg mt-2"
+                className="w-full h-24 md:h-32 object-cover rounded-lg mt-2"
               />
             )}
 
             <Button onClick={onInsert} className="w-full">
-              <Plus className="h-4 w-4 mr-2" /> Insert to Editor
+              <Plus className="h-4 w-4 mr-2" />{" "}
+              <span className="text-sm md:text-base">Insert to Editor</span>
             </Button>
           </div>
         )}

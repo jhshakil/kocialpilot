@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
     const { userAccessToken, pageAccessToken, pageId, instagramAccountId } =
       await request.json();
 
-    // Test Facebook user access
     const userResponse = await fetch(
       `https://graph.facebook.com/v18.0/me?access_token=${userAccessToken}`
     );
@@ -14,7 +13,6 @@ export async function POST(request: NextRequest) {
       throw new Error("Facebook user access failed");
     }
 
-    // Test Facebook page access if available
     if (pageId && pageAccessToken) {
       const pageResponse = await fetch(
         `https://graph.facebook.com/v18.0/${pageId}?access_token=${pageAccessToken}`
@@ -24,7 +22,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Test Instagram access if available
     if (instagramAccountId && pageAccessToken) {
       const instagramResponse = await fetch(
         `https://graph.facebook.com/v18.0/${instagramAccountId}?fields=id,username&access_token=${pageAccessToken}`

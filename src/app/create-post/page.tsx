@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState } from "react";
@@ -176,27 +177,31 @@ const CreatePostPage = () => {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Create Post</h1>
-        <p className="text-gray-600 mt-2">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+      <div className="mb-4 md:mb-6">
+        <h1 className="text2xl md:text-3xl font-bold text-gray-900">
+          Create Post
+        </h1>
+        <p className="text-gray-600 mt-2 text-sm md:text-base">
           Create and schedule your social media content with AI.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Main Editor */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PenTool className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                <PenTool className="h-4 w-4 md:h-5 md:w-5" />
                 Content Editor
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="content">Post Content</Label>
+                <Label htmlFor="content" className="text-sm md:text-base">
+                  Post Content
+                </Label>
                 <Textarea
                   id="content"
                   placeholder="Write your content..."
@@ -233,7 +238,7 @@ const CreatePostPage = () => {
 
               {/* Platform Selector */}
               <div>
-                <Label>Select Platforms</Label>
+                <Label className="text-sm md:text-base">Select Platforms</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {["facebook", "instagram"].map((platform) => (
                     <Button

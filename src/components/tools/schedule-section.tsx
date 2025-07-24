@@ -12,9 +12,11 @@ type Props = {
 
 const ScheduleSection = ({ date, time, onDateChange, onTimeChange }: Props) => {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <Label htmlFor="schedule-date">Schedule Date</Label>
+        <Label htmlFor="schedule-date" className="text-sm md:text-base">
+          Schedule Date
+        </Label>
         <Input
           id="schedule-date"
           type="date"
@@ -24,7 +26,9 @@ const ScheduleSection = ({ date, time, onDateChange, onTimeChange }: Props) => {
         />
       </div>
       <div>
-        <Label htmlFor="schedule-time">Schedule Time</Label>
+        <Label htmlFor="schedule-time" className="text-sm md:text-base">
+          Schedule Time
+        </Label>
         <Input
           id="schedule-time"
           type="time"

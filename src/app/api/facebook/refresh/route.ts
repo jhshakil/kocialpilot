@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Exchange short-lived token for long-lived token
     const longLivedTokenResponse = await fetch(
       `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${userAccessToken}`,
       {
@@ -28,7 +27,6 @@ export async function POST(request: NextRequest) {
     const tokenData = await longLivedTokenResponse.json();
     const newAccessToken = tokenData.access_token;
 
-    // Get updated user info
     const userResponse = await fetch(
       `https://graph.facebook.com/v18.0/me?access_token=${newAccessToken}`
     );
@@ -37,7 +35,6 @@ export async function POST(request: NextRequest) {
     }
     const userData = await userResponse.json();
 
-    // Get updated pages with new tokens
     const pagesResponse = await fetch(
       `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,category,tasks&access_token=${newAccessToken}`
     );
@@ -55,7 +52,6 @@ export async function POST(request: NextRequest) {
       if (validPages.length > 0) {
         pageData = validPages[0];
 
-        // Try to get Instagram account
         try {
           const instagramResponse = await fetch(
             `https://graph.facebook.com/v18.0/${pageData.id}?fields=instagram_business_account{id,username}&access_token=${pageData.access_token}`

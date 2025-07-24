@@ -33,9 +33,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <BackgroundScheduler />
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex flex-col md:flex-row min-h-screen h-screen bg-gray-50">
           <Sidebar />
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="flex-1 overflow-auto">
+            <div className="h-full">{children}</div>
+          </main>
         </div>
         <Toaster
           toastOptions={{

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type NextRequest, NextResponse } from "next/server";
 
-// Step 1: Generate OAuth URL for user authorization
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -38,7 +37,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Step 2: Exchange authorization code for access token
 export async function POST(request: NextRequest) {
   try {
     const { code, appId, appSecret } = await request.json();
@@ -54,7 +52,6 @@ export async function POST(request: NextRequest) {
       process.env.NEXTAUTH_URL || "http://localhost:3000"
     }/api/facebook/callback`;
 
-    // Exchange code for access token
     const tokenResponse = await fetch(
       `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(
         redirectUri
@@ -74,7 +71,6 @@ export async function POST(request: NextRequest) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    // Get user info
     const userResponse = await fetch(
       `https://graph.facebook.com/v18.0/me?access_token=${accessToken}`
     );
@@ -83,7 +79,6 @@ export async function POST(request: NextRequest) {
     }
     const userData = await userResponse.json();
 
-    // Get user's Facebook pages with long-lived tokens
     const pagesResponse = await fetch(
       `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,category,tasks&access_token=${accessToken}`
     );
@@ -99,10 +94,8 @@ export async function POST(request: NextRequest) {
         ) || [];
 
       if (validPages.length > 0) {
-        // Use the first valid page
         pageData = validPages[0];
 
-        // Try to get Instagram account for this page
         try {
           const instagramResponse = await fetch(
             `https://graph.facebook.com/v18.0/${pageData.id}?fields=instagram_business_account{id,username}&access_token=${pageData.access_token}`

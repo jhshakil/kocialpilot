@@ -46,11 +46,9 @@ export async function POST(request: NextRequest) {
     const content = data.choices[0]?.message?.content;
 
     try {
-      // Try to parse as JSON first
       const parsedContent = JSON.parse(content);
       return NextResponse.json(parsedContent);
     } catch {
-      // If not JSON, create a structured response
       const lines = content.split("\n").filter((line: string) => line.trim());
       const caption = lines[0] || content;
       const hashtags = content

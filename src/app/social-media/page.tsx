@@ -305,21 +305,23 @@ export default function SocialMediaPage() {
     );
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">Social Media Integration</h1>
-      <p className="text-gray-600 mb-6">
+    <div className="p-4 md:p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl md:text-3xl font-bold mb-2">
+        Social Media Integration
+      </h1>
+      <p className="text-gray-600 mb-6 text-sm md:text-base">
         Connect your social media accounts securely using OAuth
       </p>
 
       {authCode && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-blue-800 font-medium">
+        <div className="mb-4 md:mb-6 p-3 md:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-800 font-medium text-sm md:text-base">
             Authorization received! Complete the connection below.
           </p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         {Object.values(PLATFORMS).map((platform) => {
           const connection = connections[platform.id] || {
             status: "disconnected",
@@ -334,8 +336,10 @@ export default function SocialMediaPage() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold">{platform.name}</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="font-semibold text-sm md:text-base">
+                      {platform.name}
+                    </h3>
+                    <p className="text-xs md:text-sm text-gray-500">
                       {platform.description}
                     </p>
                   </div>
@@ -354,7 +358,7 @@ export default function SocialMediaPage() {
                 </div>
 
                 {connection.error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                  <div className="p-3 bg-red-50 border border-red-200 rounded text-xs md:text-sm text-red-600">
                     {connection.error}
                   </div>
                 )}
@@ -381,7 +385,7 @@ export default function SocialMediaPage() {
                               e.target.value
                             )
                           }
-                          className="mt-3"
+                          className="mt-3 text-sm md:text-base"
                         />
                       </div>
                     ))}
@@ -397,7 +401,7 @@ export default function SocialMediaPage() {
                       ) : (
                         <ExternalLink className="h-4 w-4 mr-2" />
                       )}
-                      Start OAuth
+                      <span className="text-sm md:text-base">Start OAuth</span>
                     </Button>
 
                     <Button
@@ -405,7 +409,10 @@ export default function SocialMediaPage() {
                       disabled={!authCode}
                       className="w-full"
                     >
-                      <Plus className="h-4 w-4 mr-2" /> Complete Connection
+                      <Plus className="h-4 w-4 mr-2" />{" "}
+                      <span className="text-sm md:text-base">
+                        Complete Connection
+                      </span>
                     </Button>
                   </>
                 )}

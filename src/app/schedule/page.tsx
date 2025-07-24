@@ -123,83 +123,96 @@ const SchedulePage = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Schedule Overview</h1>
-        <p className="text-gray-600 mt-2">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+          Schedule Overview
+        </h1>
+        <p className="text-gray-600 mt-2 text-sm md:text-base">
           Manage and organize your scheduled social media posts
         </p>
       </div>
 
-      <Card className="mb-6">
+      {/* Date Range Filter  */}
+      <Card className="mb-4 md:mb-6">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <CalendarDays className="h-4 w-4 md:h-5 md:w-5" />
             Date Range Filter
           </CardTitle>
         </CardHeader>
+
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-              <Label htmlFor="start-date">Start Date</Label>
+            <div className="flex flex-col w-full">
+              <Label htmlFor="start-date" className="text-sm md:text-base">
+                Start Date
+              </Label>
               <Input
                 id="start-date"
                 type="date"
                 value={range.startDate}
-                className="mt-3"
+                className="mt-2 w-full"
                 onChange={(e) =>
                   setRange((r) => ({ ...r, startDate: e.target.value }))
                 }
               />
             </div>
-            <div>
-              <Label htmlFor="end-date">End Date</Label>
+
+            <div className="flex flex-col w-full">
+              <Label htmlFor="end-date" className="text-sm md:text-base">
+                End Date
+              </Label>
               <Input
                 id="end-date"
                 type="date"
                 value={range.endDate}
-                className="mt-3"
+                className="mt-2 w-full"
                 onChange={(e) =>
                   setRange((r) => ({ ...r, endDate: e.target.value }))
                 }
               />
             </div>
-            <Button
-              onClick={() => {
-                const today = new Date();
-                const nextWeek = new Date();
-                nextWeek.setDate(today.getDate() + 7);
-                setRange({
-                  startDate: today.toISOString().split("T")[0],
-                  endDate: nextWeek.toISOString().split("T")[0],
-                });
-              }}
-              variant="outline"
-            >
-              This Week
-            </Button>
+
+            <div className="flex w-full">
+              <Button
+                onClick={() => {
+                  const today = new Date();
+                  const nextWeek = new Date();
+                  nextWeek.setDate(today.getDate() + 7);
+                  setRange({
+                    startDate: today.toISOString().split("T")[0],
+                    endDate: nextWeek.toISOString().split("T")[0],
+                  });
+                }}
+                variant="outline"
+                className="w-full md:w-auto"
+              >
+                This Week
+              </Button>
+            </div>
           </div>
-          <p className="mt-4 text-sm text-gray-600">
+
+          <p className="mt-4 text-xs md:text-sm text-gray-600">
             Showing {filteredPosts.length} posts from {range.startDate} to{" "}
             {range.endDate}
           </p>
         </CardContent>
       </Card>
 
-      <Card className="mb-6">
+      {/* Calender View  */}
+      <Card className="mb-4 md:mb-6">
         <CardHeader>
-          <CardTitle>
-            <Calendar className="h-5 w-5 inline-block mr-1" /> Calendar View
+          <CardTitle className="text-lg md:text-xl">
+            <Calendar className="h-4 w-4 md:h-5 md:w-5 inline-block mr-1" />{" "}
+            Calendar View
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div
-            className="grid gap-4"
+            className="grid gap-2 md:gap-4 min-w-full"
             style={{
-              gridTemplateColumns: `repeat(${Math.min(
-                dateRange.length,
-                7
-              )}, 1fr)`,
+              gridTemplateColumns: `repeat(auto-fit, minmax(200px, 1fr))`,
             }}
           >
             {dateRange.map((date) => {
@@ -213,16 +226,18 @@ const SchedulePage = () => {
                   key={date}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => handleDrop(e, date)}
-                  className="min-h-[200px] border rounded-lg p-3"
+                  className="min-h-[150px] md:min-h-[200px] border rounded-lg p-2 md:p-3"
                 >
-                  <div className="text-center mb-3">
-                    <h3 className="font-medium text-sm">{dayName}</h3>
+                  <div className="text-center mb-2 md:mb-3">
+                    <h3 className="font-medium text-xs md:text-sm">
+                      {dayName}
+                    </h3>
                     <p className="text-xs text-gray-500">
                       {new Date(date).getDate()}
                     </p>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1 md:space-y-2">
                     {dayPosts.map((post) => (
                       <div
                         key={post.id}
@@ -278,45 +293,56 @@ const SchedulePage = () => {
         </CardContent>
       </Card>
 
+      {/* All Post  */}
       <Card>
         <CardHeader>
-          <CardTitle>All Posts in Range ({filteredPosts.length})</CardTitle>
+          <CardTitle className="text-lg md:text-xl">
+            All Posts in Range ({filteredPosts.length})
+          </CardTitle>
         </CardHeader>
+
         <CardContent>
           {filteredPosts.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No posts found in the selected range.</p>
+              <Calendar className="h-8 w-8 md:h-12 md:w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-sm md:text-base">
+                No posts found in the selected range.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
               {filteredPosts.map((post) => (
                 <div
                   key={post.id}
-                  className="flex items-start gap-4 p-4 border rounded-lg"
+                  className="flex flex-col md:flex-row md:items-center gap-4 p-4 border rounded-lg"
                 >
                   {post.images.length > 0 && (
-                    <Image
-                      width={64}
-                      height={64}
-                      src={post.images[0]}
-                      alt="Post"
-                      className="h-16 object-cover rounded"
-                    />
+                    <div className="w-full md:w-32 flex-shrink-0">
+                      <Image
+                        width={128}
+                        height={128}
+                        src={post.images[0]}
+                        alt="Post"
+                        className="w-full h-48 md:h-32 object-cover rounded"
+                      />
+                    </div>
                   )}
-                  <div className="flex-1">
+
+                  <div className="flex-1 w-full">
                     <p className="text-sm text-gray-700 mb-2">{post.content}</p>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>
-                        <Calendar className="h-3 w-3 inline-block mr-1" />
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                      <span className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
                         {post.date}
                       </span>
-                      <span>
-                        <Clock className="h-3 w-3 inline-block mr-1" />
+                      <span className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
                         {post.time}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
+
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
                       <Badge
                         className={`text-xs ${getStatusColor(post.status)}`}
                       >
@@ -334,10 +360,11 @@ const SchedulePage = () => {
                       )}
                     </div>
                   </div>
+
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700 self-start md:self-center"
                     onClick={() => deletePost(post.id)}
                   >
                     <Trash2 className="h-4 w-4" />

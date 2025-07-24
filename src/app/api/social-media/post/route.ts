@@ -1,179 +1,150 @@
-"use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { type NextRequest, NextResponse } from "next/server";
 
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+export async function POST(request: NextRequest) {
+  try {
+    const { content, imageUrl, platform, connectionData } =
+      await request.json();
 
-// Storage keys
-const POSTS_STORAGE_KEY = "kocialpilot_posts";
-
-const PLATFORM_STORAGE_KEYS = {
-  facebook: "kocialpilot_fb_ig_connections",
-  instagram: "kocialpilot_fb_ig_connections",
-  // twitter: "kocialpilot_twitter_connection",
-  // linkedin: "kocialpilot_linkedin_connection",
-};
-
-type ScheduledPost = {
-  id: string;
-  content: string;
-  date: string;
-  time: string;
-  platform: string[];
-  status: "scheduled" | "published" | "failed";
-  images: string[];
-  createdAt: string;
-};
-
-type PlatformConnection = {
-  status: string;
-  [key: string]: unknown;
-};
-
-export function BackgroundScheduler() {
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(checkAndPublishPosts, 60_000);
-    checkAndPublishPosts();
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const getConnectionForPlatform = (
-    platform: string
-  ): PlatformConnection | null => {
-    const storageKey =
-      PLATFORM_STORAGE_KEYS[platform as keyof typeof PLATFORM_STORAGE_KEYS];
-    if (!storageKey) return null;
-
-    const stored = localStorage.getItem(storageKey);
-    if (!stored) return null;
-
-    const conn: PlatformConnection = JSON.parse(stored);
-    return conn.status === "connected" ? conn : null;
-  };
-
-  const checkAndPublishPosts = async () => {
-    if (isProcessing) return;
-
-    setIsProcessing(true);
-
-    try {
-      const posts: ScheduledPost[] = JSON.parse(
-        localStorage.getItem(POSTS_STORAGE_KEY) || "[]"
+    if (!content || !platform || !connectionData) {
+      return NextResponse.json(
+        { error: "Content, platform, and connection data are required" },
+        { status: 400 }
       );
-      const now = new Date();
-
-      const postsToPublish = posts.filter((post) => {
-        if (post.status !== "scheduled") return false;
-
-        const postTime = new Date(`${post.date}T${post.time}:00`);
-        const diff = now.getTime() - postTime.getTime();
-        return postTime <= now && diff < 120_000;
-      });
-
-      for (const post of postsToPublish) {
-        await publishPost(post);
-      }
-    } catch (err) {
-      console.error("Scheduler error:", err);
-    } finally {
-      setIsProcessing(false);
     }
-  };
 
-  const publishPost = async (post: ScheduledPost) => {
-    const allPosts: ScheduledPost[] = JSON.parse(
-      localStorage.getItem(POSTS_STORAGE_KEY) || "[]"
+    let result: any = {};
+
+    switch (platform.toLowerCase()) {
+      case "facebook":
+        result = await postToFacebook(content, imageUrl, connectionData);
+        break;
+      case "instagram":
+        result = await postToInstagram(content, imageUrl, connectionData);
+        break;
+
+      default:
+        return NextResponse.json(
+          { error: `Unsupported platform: ${platform}` },
+          { status: 400 }
+        );
+    }
+
+    return NextResponse.json({
+      success: true,
+      platform,
+      postId: result.id,
+      result,
+    });
+  } catch (error: any) {
+    console.error("Posting error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create post" },
+      { status: 500 }
     );
-    let postUpdated = false;
-    let hasSuccess = false;
-    let hasError = false;
-    const publishedPlatforms: string[] = [];
+  }
+}
 
-    for (const platform of post.platform) {
-      const connection = getConnectionForPlatform(platform);
+async function postToFacebook(
+  content: string,
+  imageUrl: string | null,
+  connectionData: any
+) {
+  const { pageId, pageAccessToken } = connectionData;
 
-      if (!connection) {
-        console.warn(`No connection for ${platform}`);
-        hasError = true;
-        continue;
-      }
+  if (!pageId || !pageAccessToken) {
+    throw new Error("Facebook page ID and access token are required");
+  }
 
-      let connectionData: Record<string, unknown> = {};
+  const endpoint = `https://graph.facebook.com/v18.0/${pageId}/feed`;
 
-      switch (platform.toLowerCase()) {
-        case "facebook":
-          connectionData = {
-            pageId: connection.pageId,
-            pageAccessToken: connection.pageAccessToken,
-          };
-          break;
-        case "instagram":
-          connectionData = {
-            instagramAccountId: connection.instagramAccountId,
-            pageAccessToken: connection.pageAccessToken,
-          };
-          break;
-        // Add more platforms here!
-        default:
-          console.warn(`Unsupported platform: ${platform}`);
-          hasError = true;
-          continue;
-      }
-
-      try {
-        const res = await fetch(`/api/social-media/post`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: post.content,
-            imageUrl: post.images[0] || null,
-            platform,
-            connectionData,
-          }),
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || `Failed to post to ${platform}`);
-        }
-
-        const result = await res.json();
-
-        if (result.success) {
-          hasSuccess = true;
-          publishedPlatforms.push(platform);
-          console.log(`✅ Posted to ${platform}:`, result.postId);
-        }
-      } catch (err) {
-        console.error(`❌ Error posting to ${platform}:`, err);
-        hasError = true;
-      }
-    }
-
-    const idx = allPosts.findIndex((p) => p.id === post.id);
-    if (idx !== -1) {
-      if (hasSuccess) {
-        allPosts[idx].status = "published";
-      } else {
-        allPosts[idx].status = "failed";
-      }
-      postUpdated = true;
-    }
-
-    if (hasSuccess) {
-      toast.success(`Published to: ${publishedPlatforms.join(", ")}`);
-    }
-
-    if (hasError && !hasSuccess) {
-      toast.error("Failed to publish to any platform. Check connections.");
-    }
-
-    if (postUpdated) {
-      localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(allPosts));
-    }
+  const postData: any = {
+    message: content,
+    access_token: pageAccessToken,
   };
 
-  return null;
+  if (imageUrl) {
+    if (imageUrl.startsWith("http")) {
+      postData.link = imageUrl;
+    } else {
+      postData.message = `${content}\n\n[Image would be uploaded in production]`;
+    }
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(postData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || "Failed to post to Facebook");
+  }
+
+  return await response.json();
+}
+
+async function postToInstagram(
+  content: string,
+  imageUrl: string | null,
+  connectionData: any
+) {
+  const { instagramAccountId, pageAccessToken } = connectionData;
+
+  if (!instagramAccountId || !pageAccessToken) {
+    throw new Error("Instagram account ID and page access token are required");
+  }
+
+  if (!imageUrl) {
+    throw new Error("Instagram posts require an image");
+  }
+
+  const containerResponse = await fetch(
+    `https://graph.facebook.com/v18.0/${instagramAccountId}/media`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        image_url: imageUrl,
+        caption: content,
+        access_token: pageAccessToken,
+      }),
+    }
+  );
+
+  if (!containerResponse.ok) {
+    const error = await containerResponse.json();
+    throw new Error(
+      error.error?.message || "Failed to create Instagram media container"
+    );
+  }
+
+  const containerData = await containerResponse.json();
+  const creationId = containerData.id;
+
+  const publishResponse = await fetch(
+    `https://graph.facebook.com/v18.0/${instagramAccountId}/media_publish`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        creation_id: creationId,
+        access_token: pageAccessToken,
+      }),
+    }
+  );
+
+  if (!publishResponse.ok) {
+    const error = await publishResponse.json();
+    throw new Error(error.error?.message || "Failed to publish Instagram post");
+  }
+
+  return await publishResponse.json();
 }

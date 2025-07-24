@@ -8,7 +8,6 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get("error");
 
     if (error) {
-      // Redirect to social media page with error
       return NextResponse.redirect(
         new URL(`/social-media?error=${encodeURIComponent(error)}`, request.url)
       );
@@ -23,7 +22,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Redirect to social media page with the authorization code
     return NextResponse.redirect(
       new URL(`/social-media?code=${encodeURIComponent(code)}`, request.url)
     );
